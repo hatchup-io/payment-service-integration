@@ -47,6 +47,10 @@ dev = [
   "pytest>=8.3",
   "pytest-cov>=5.0",
   "respx>=0.21",
+  # Pulled in for the Django-integration tests; the SDK core does not import Django.
+  "django>=4.2",
+  "djangorestframework>=3.14",
+  "pytest-django>=4.9",
 ]
 
 [tool.uv]
@@ -68,6 +72,8 @@ minversion = "8.0"
 addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+pythonpath = ["."]
+DJANGO_SETTINGS_MODULE = "tests.django.settings"
 markers = [
   "live: integration tests that hit a running payment-system (skipped by default)",
 ]
@@ -96,6 +102,14 @@ ignore_missing_imports = true
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+
+# Django + DRF don't ship type stubs in the dev-dep set, so relax strict subclassing
+# and decorator rules for the optional Django integration. Keeps the rest of the
+# SDK on full mypy strict.
+[[tool.mypy.overrides]]
+module = "hatchup_psip.django.*"
+disallow_subclassing_any = false
+disallow_untyped_decorators = false
 
 [tool.ruff]
 line-length = 120
