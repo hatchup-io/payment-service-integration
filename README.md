@@ -1,12 +1,12 @@
 # Hatchup Payment Service Integration
 
-Python SDK for integrating with the [Hatchup Payment Service](https://github.com/hatchup-io/hatchup-payment-system) — a multi-tenant Stripe Connect gateway.
+Python SDK for integrating with the [Hatchup Payment Service](https://github.com/hatchup-io/hatchup-payment-system) — an internal Stripe Connect gateway.
 
-> **Status:** Pre-alpha. M0 (toolchain bootstrap) only. Public API does not exist yet.
+> **Status:** 0.3.0 — sync client + webhooks + Django integration shipped. Async client (M3) pending.
 
 ## What this is
 
-A framework-agnostic Python client for any Hatchup product that needs to take payments. The SDK proxies every Hatchup Payment Service feature behind typed resource classes, parses inbound webhooks, and ships an optional Django integration. Direct Stripe SDK access is intentionally out of scope — see [`docs/STRIPE_PASSTHROUGH.md`](docs/STRIPE_PASSTHROUGH.md) (forthcoming).
+A framework-agnostic Python client for any Hatchup product that needs to take payments. The SDK proxies every Hatchup Payment Service feature behind typed resource classes, parses inbound webhooks, and ships an optional Django integration. Direct Stripe SDK access is intentionally out of scope — see [`docs/STRIPE_PASSTHROUGH.md`](docs/STRIPE_PASSTHROUGH.md).
 
 ## Install
 
@@ -18,14 +18,37 @@ pip install "hatchup-payment-service-integration[django]"
 
 Requires Python 3.12+.
 
+## 30-second example
+
+```python
+from pydantic import SecretStr
+from hatchup_psip import PaymentServiceClient, PSIPConfig
+
+with PaymentServiceClient(PSIPConfig(api_key=SecretStr("hp_..."))) as client:
+    response = client.payments.create(
+        price="9.99",
+        order_id="ord_2026_05_001",
+        success_webhook="https://app.example/psip/webhook/",
+        failure_webhook="https://app.example/psip/webhook/",
+    )
+    print(response.payment_url)   # → redirect the buyer here
+```
+
+## Documentation
+
+- [`docs/quickstart.md`](docs/quickstart.md) — install, construct a client, call every resource, error hierarchy.
+- [`docs/webhooks.md`](docs/webhooks.md) — **read before deploying**. Webhooks are not signed today; the SDK's verify-by-default dispatcher is the only forgery defence.
+- [`docs/django.md`](docs/django.md) — `PSIPWebhookView`, `settings.PSIP`, three wiring patterns.
+- [`docs/STRIPE_PASSTHROUGH.md`](docs/STRIPE_PASSTHROUGH.md) — why the SDK does not wrap the Stripe SDK directly.
+- [`CHANGELOG.md`](CHANGELOG.md) — release notes.
+
 ## Roadmap
 
-- **M0 — toolchain bootstrap** _(current)_: `pyproject.toml`, ruff/mypy/pytest, `justfile`, package skeleton.
-- **M1 — sync client + webhooks**: `PaymentServiceClient` covering `payments`, `verify`, `transactions`; `WebhookDispatcher` with verify-by-default forgery guard.
-- **M2 — Django integration**: `PSIPWebhookView`, settings adapter.
-- **M3 — async client**.
-
-See the design notes in [`docs/`](docs/) once they land.
+- **M0 — toolchain bootstrap** _(0.1.0, shipped)_
+- **M1 — sync client + webhooks** _(0.2.0, shipped)_
+- **M2 — Django integration** _(0.3.0, shipped)_
+- **M3 — async client** _(planned)_: `AsyncPaymentServiceClient`, paired async resources sharing mixins, async dispatcher.
+- **1.0.0** _(planned)_: stabilization after launchpad-backend's first integration cycle.
 
 ## Development
 
@@ -38,6 +61,9 @@ just all
 
 # run tests (skips `live` integration tests by default)
 just test
+
+# coverage report
+just cov
 
 # build wheel + sdist
 just build
