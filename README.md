@@ -2,7 +2,7 @@
 
 Python SDK for integrating with the [Hatchup Payment Service](https://github.com/hatchup-io/hatchup-payment-system) — an internal Stripe Connect gateway.
 
-> **Status:** 0.3.0 — sync client + webhooks + Django integration shipped. Async client (M3) pending.
+> **Status:** 0.4.0 — sync + async client, webhooks, Django integration, and contract tripwire shipped. Stabilizing toward 1.0.
 
 ## What this is
 
@@ -47,7 +47,7 @@ with PaymentServiceClient(PSIPConfig(api_key=SecretStr("hp_..."))) as client:
 - **M0 — toolchain bootstrap** _(0.1.0, shipped)_
 - **M1 — sync client + webhooks** _(0.2.0, shipped)_
 - **M2 — Django integration** _(0.3.0, shipped)_
-- **M3 — async client** _(planned)_: `AsyncPaymentServiceClient`, paired async resources sharing mixins, async dispatcher.
+- **M3 — async client** _(0.4.0, shipped)_: `AsyncPaymentServiceClient`, paired async resources, `AsyncWebhookDispatcher`.
 - **1.0.0** _(planned)_: stabilization after launchpad-backend's first integration cycle.
 
 ## Development

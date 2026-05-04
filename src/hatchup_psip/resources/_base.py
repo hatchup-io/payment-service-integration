@@ -20,13 +20,21 @@ from pydantic import BaseModel
 from pydantic import ValidationError
 
 from hatchup_psip.exceptions import PSIPProtocolError
+from hatchup_psip.transport import AsyncTransport
 from hatchup_psip.transport import Transport
 
 
 class _Resource:
-    """Base class for every resource proxy."""
+    """Base class for every synchronous resource proxy."""
 
     def __init__(self, transport: Transport) -> None:
+        self._transport = transport
+
+
+class _AsyncResource:
+    """Base class for every asynchronous resource proxy."""
+
+    def __init__(self, transport: AsyncTransport) -> None:
         self._transport = transport
 
 
@@ -40,4 +48,4 @@ def _parse_response[M: BaseModel](model_cls: type[M], data: dict[str, Any]) -> M
         ) from exc
 
 
-__all__ = ["_Resource", "_parse_response"]
+__all__ = ["_AsyncResource", "_Resource", "_parse_response"]

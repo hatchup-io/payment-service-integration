@@ -19,10 +19,40 @@ from hatchup_psip.exceptions import PSIPNotFoundError
 from hatchup_psip.exceptions import PSIPWebhookForgeryError
 from hatchup_psip.models.transaction import Transaction
 from hatchup_psip.models.webhook import PaymentCompletedEvent
+from hatchup_psip.resources.transactions import AsyncTransactionsResource
 from hatchup_psip.resources.transactions import TransactionsResource
 
 # Webhook event.status -> server Transaction.status it must match
 _EXPECTED_SERVER_STATUS = {"completed": "succeeded"}
+
+
+def _check_match(event: PaymentCompletedEvent, tx: Transaction) -> Transaction:
+    """Compare server's record against the webhook payload. Return tx on success, else raise."""
+    mismatches: list[str] = []
+    if tx.order_id != event.order_id:
+        mismatches.append(
+            f"order_id: server={tx.order_id!r} vs webhook={event.order_id!r}",
+        )
+    if tx.amount != event.amount:
+        mismatches.append(
+            f"amount: server={tx.amount} vs webhook={event.amount}",
+        )
+    if tx.currency.lower() != event.currency.lower():
+        mismatches.append(
+            f"currency: server={tx.currency!r} vs webhook={event.currency!r}",
+        )
+    expected_server_status = _EXPECTED_SERVER_STATUS.get(event.status)
+    if expected_server_status is not None and tx.status != expected_server_status:
+        mismatches.append(
+            f"status: webhook={event.status!r} expects server={expected_server_status!r}, got server={tx.status!r}",
+        )
+
+    if mismatches:
+        raise PSIPWebhookForgeryError(
+            f"webhook payload does not match server transaction "
+            f"(transaction_id={event.transaction_id}): {'; '.join(mismatches)}",
+        )
+    return tx
 
 
 def verify_event(
@@ -49,33 +79,21 @@ def verify_event(
         raise PSIPWebhookForgeryError(
             f"webhook references unknown transaction_id={event.transaction_id}",
         ) from exc
+    return _check_match(event, tx)
 
-    mismatches: list[str] = []
-    if tx.order_id != event.order_id:
-        mismatches.append(
-            f"order_id: server={tx.order_id!r} vs webhook={event.order_id!r}",
-        )
-    if tx.amount != event.amount:
-        mismatches.append(
-            f"amount: server={tx.amount} vs webhook={event.amount}",
-        )
-    if tx.currency.lower() != event.currency.lower():
-        mismatches.append(
-            f"currency: server={tx.currency!r} vs webhook={event.currency!r}",
-        )
-    expected_server_status = _EXPECTED_SERVER_STATUS.get(event.status)
-    if expected_server_status is not None and tx.status != expected_server_status:
-        mismatches.append(
-            f"status: webhook={event.status!r} expects server={expected_server_status!r}, got server={tx.status!r}",
-        )
 
-    if mismatches:
+async def async_verify_event(
+    event: PaymentCompletedEvent,
+    transactions: AsyncTransactionsResource,
+) -> Transaction:
+    """Async equivalent of :func:`verify_event` — same contract, awaits ``transactions.get``."""
+    try:
+        tx = await transactions.get(event.transaction_id)
+    except PSIPNotFoundError as exc:
         raise PSIPWebhookForgeryError(
-            f"webhook payload does not match server transaction "
-            f"(transaction_id={event.transaction_id}): {'; '.join(mismatches)}",
-        )
-
-    return tx
+            f"webhook references unknown transaction_id={event.transaction_id}",
+        ) from exc
+    return _check_match(event, tx)
 
 
-__all__ = ["verify_event"]
+__all__ = ["async_verify_event", "verify_event"]

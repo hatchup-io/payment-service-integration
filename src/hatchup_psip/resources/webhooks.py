@@ -12,8 +12,10 @@ from typing import Any
 
 from hatchup_psip.models.transaction import Transaction
 from hatchup_psip.models.webhook import PaymentCompletedEvent
+from hatchup_psip.resources.transactions import AsyncTransactionsResource
 from hatchup_psip.resources.transactions import TransactionsResource
 from hatchup_psip.webhooks.parser import parse_payment_completed
+from hatchup_psip.webhooks.verifier import async_verify_event as _async_verify_event
 from hatchup_psip.webhooks.verifier import verify_event as _verify_event
 
 
@@ -42,4 +44,22 @@ class WebhooksResource:
         return _verify_event(event, self._transactions)
 
 
-__all__ = ["WebhooksResource"]
+class AsyncWebhooksResource:
+    """Async equivalent of :class:`WebhooksResource`.
+
+    :meth:`parse` stays synchronous — it's pure CPU/JSON. Only
+    :meth:`verify_event` (which round-trips the server) becomes a
+    coroutine.
+    """
+
+    def __init__(self, *, transactions: AsyncTransactionsResource) -> None:
+        self._transactions = transactions
+
+    def parse(self, body: bytes | str | dict[str, Any]) -> PaymentCompletedEvent:
+        return parse_payment_completed(body)
+
+    async def verify_event(self, event: PaymentCompletedEvent) -> Transaction:
+        return await _async_verify_event(event, self._transactions)
+
+
+__all__ = ["AsyncWebhooksResource", "WebhooksResource"]

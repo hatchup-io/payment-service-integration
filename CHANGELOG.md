@@ -6,6 +6,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-04
+
+### Added
+
+- **Async client (M3)**:
+  - `AsyncTransport` (in `transport.py`) — `httpx.AsyncClient` wrapper. Same envelope decoding + error classification as `Transport` (the helpers are now module-level functions shared by both); retries use `asyncio.sleep` so they don't block the event loop.
+  - `AsyncPaymentServiceClient` (in `client.py`) — same surface as `PaymentServiceClient`, awaitable. Async context manager via `__aenter__`/`__aexit__`/`aclose()`.
+  - Async resource pairs sharing request-build/response-parse helpers with the sync versions: `AsyncPaymentsResource`, `AsyncVerifyResource`, `AsyncTransactionsResource` (with `async for` `iter_all`), `AsyncWebhooksResource`.
+  - `AsyncWebhookDispatcher` — accepts both async and sync handlers (sync handlers are called directly, no thread offload). Same `ExceptionGroup` aggregation. Async verifier (typically `async_client.webhooks.verify_event`).
+  - `async_verify_event(event, transactions)` — async forgery guard.
+
+### Changed
+
+- Refactored `Transport`'s `_handle_response`, `_decode_envelope`, `_classify_error` from class statics to module-level functions so `AsyncTransport` shares them — no behavior change for `Transport`.
+- Added `pytest-asyncio` (>=0.24) to dev deps; `asyncio_mode = "auto"` in `[tool.pytest.ini_options]` so async test functions don't need a marker.
+
+### Tests
+
+- Added test suites for `AsyncTransport`, `AsyncPaymentServiceClient`, async resource pairs, `AsyncWebhookDispatcher`, and `async_verify_event`.
+
+## [0.3.5] — 2026-05-04
+
+### Added
+
+- **Server-contract tripwire** (`tests/contract/`) — captured digest of payment-system's `apps/payments/schema.py` plus 11 test cases that diff each SDK pydantic model's field set against the snapshot. Catches schema drift (server adding/removing/renaming a field without an SDK update).
+- **Live-server integration skeleton** (`tests/integration/`) — `pytest -m live` opt-in, env-var based config (`PSIP_INTEGRATION_*`), README documenting docker-compose setup. CI does not run these.
+
 ## [0.3.0] — 2026-05-04
 
 ### Added
@@ -50,7 +77,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Exception hierarchy rooted at `PSIPError`: `PSIPNetworkError`, `PSIPProtocolError`, `PSIPAPIError` (with `PSIPAuthError`, `PSIPValidationError`, `PSIPNotFoundError`, `PSIPServerError` subclasses).
 - Test scaffolding: `pytest` + `respx` for HTTP mocking. `--import-mode=importlib`. Coverage gate.
 
-[Unreleased]: https://github.com/hatchup-io/payment-service-integration/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/hatchup-io/payment-service-integration/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.3.5...v0.4.0
+[0.3.5]: https://github.com/hatchup-io/payment-service-integration/compare/v0.3.0...v0.3.5
 [0.3.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/hatchup-io/payment-service-integration/releases/tag/v0.1.0
