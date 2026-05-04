@@ -1,0 +1,121 @@
+{
+  "_meta": {
+    "captured_from": "Manual digest of hatchup-payment-system/apps/payments/schema.py",
+    "captured_at": "2026-05-04",
+    "captured_against_commit": "main HEAD as of capture date — refresh via `just refresh-contract` once payment-system /api/schema/ is reachable in CI",
+    "server_version": "1.0.0",
+    "purpose": "Tripwire for server schema drift. When payment-system adds/removes/renames a field, this snapshot must be updated and the matching SDK pydantic model adjusted in the same PR."
+  },
+  "endpoints": {
+    "POST /api/v1/payment": {
+      "_serializer": "PaymentRequestSerializer",
+      "request_fields": [
+        "price",
+        "currency",
+        "order_id",
+        "payment_type",
+        "success_webhook",
+        "failure_webhook",
+        "sandbox"
+      ],
+      "response_data_fields": [
+        "payment_url",
+        "session_id",
+        "order_id"
+      ]
+    },
+    "POST /api/v1/repayment": {
+      "_serializer": "RepaymentRequestSerializer",
+      "request_fields": [
+        "order_id",
+        "success_webhook",
+        "failure_webhook",
+        "sandbox"
+      ],
+      "response_data_fields": [
+        "payment_url",
+        "session_id",
+        "order_id"
+      ]
+    },
+    "POST /api/v1/verify": {
+      "_serializer": "VerifyRequestSerializer",
+      "request_fields": [
+        "order_id",
+        "price",
+        "currency"
+      ],
+      "response_data_fields": [
+        "order_id",
+        "verified"
+      ]
+    },
+    "GET /api/v1/transactions": {
+      "_serializer": "TransactionListDataSerializer",
+      "query_params": [
+        "date_from",
+        "date_to",
+        "status",
+        "sandbox",
+        "verified",
+        "page",
+        "page_size"
+      ],
+      "response_data_fields": [
+        "results",
+        "page",
+        "page_size",
+        "count"
+      ],
+      "results_item_fields": [
+        "id",
+        "order_id",
+        "amount",
+        "currency",
+        "status",
+        "is_test",
+        "verified_at",
+        "created_at"
+      ]
+    },
+    "GET /api/v1/transactions/{id_or_order_id}": {
+      "_serializer": "TransactionDetailSerializer",
+      "response_data_fields": [
+        "id",
+        "order_id",
+        "amount",
+        "currency",
+        "status",
+        "is_test",
+        "verified_at",
+        "created_at",
+        "stripe_checkout_session_id"
+      ]
+    }
+  },
+  "envelope": {
+    "_serializer": "ApiResponseEnvelopeSerializer",
+    "fields": [
+      "data",
+      "status",
+      "message"
+    ],
+    "status_choices": [
+      "ok",
+      "failure"
+    ]
+  },
+  "webhook_outbound": {
+    "_source": "hatchup-payment-system/apps/payments/webhooks.py:113-120 (the body POSTed to consumer success_webhook)",
+    "fields": [
+      "order_id",
+      "status",
+      "amount",
+      "currency",
+      "transaction_id"
+    ],
+    "status_emitted": [
+      "completed"
+    ]
+  }
+}
