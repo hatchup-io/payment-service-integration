@@ -76,6 +76,26 @@ class PSIPServerError(PSIPAPIError):
     """HTTP 5xx — the payment-system or upstream Stripe failed unexpectedly."""
 
 
+class PSIPWebhookValidationError(PSIPProtocolError):
+    """The inbound webhook body wasn't valid JSON or didn't match the documented event shape."""
+
+
+class PSIPWebhookForgeryError(PSIPProtocolError):
+    """Server roundtrip refused to confirm the webhook payload.
+
+    Raised by :class:`hatchup_psip.webhooks.dispatcher.WebhookDispatcher`
+    (with ``verify=True``) when ``client.webhooks.verify_event`` finds
+    that the server's record of the transaction is missing or differs
+    from what the webhook claimed (mismatched ``order_id``, ``amount``,
+    ``currency``, or ``status``).
+
+    Treat this exception as "do not trust this payload" — never let user
+    handlers run after it's raised. The payment-system does not
+    cryptographically sign outbound webhooks today, so this round-trip
+    is the SDK's only forgery defence.
+    """
+
+
 __all__ = [
     "PSIPAPIError",
     "PSIPAuthError",
@@ -85,4 +105,6 @@ __all__ = [
     "PSIPProtocolError",
     "PSIPServerError",
     "PSIPValidationError",
+    "PSIPWebhookForgeryError",
+    "PSIPWebhookValidationError",
 ]

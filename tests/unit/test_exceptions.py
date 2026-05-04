@@ -12,6 +12,8 @@ from hatchup_psip.exceptions import PSIPNotFoundError
 from hatchup_psip.exceptions import PSIPProtocolError
 from hatchup_psip.exceptions import PSIPServerError
 from hatchup_psip.exceptions import PSIPValidationError
+from hatchup_psip.exceptions import PSIPWebhookForgeryError
+from hatchup_psip.exceptions import PSIPWebhookValidationError
 
 
 @pytest.mark.parametrize(
@@ -24,10 +26,17 @@ from hatchup_psip.exceptions import PSIPValidationError
         PSIPValidationError,
         PSIPNotFoundError,
         PSIPServerError,
+        PSIPWebhookValidationError,
+        PSIPWebhookForgeryError,
     ],
 )
 def test_all_subclasses_inherit_from_psip_error(exc_cls: type[PSIPError]) -> None:
     assert issubclass(exc_cls, PSIPError)
+
+
+@pytest.mark.parametrize("exc_cls", [PSIPWebhookValidationError, PSIPWebhookForgeryError])
+def test_webhook_errors_inherit_from_psip_protocol_error(exc_cls: type[PSIPProtocolError]) -> None:
+    assert issubclass(exc_cls, PSIPProtocolError)
 
 
 @pytest.mark.parametrize(

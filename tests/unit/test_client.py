@@ -9,6 +9,7 @@ from hatchup_psip.config import PSIPConfig
 from hatchup_psip.resources.payments import PaymentsResource
 from hatchup_psip.resources.transactions import TransactionsResource
 from hatchup_psip.resources.verify import VerifyResource
+from hatchup_psip.resources.webhooks import WebhooksResource
 from hatchup_psip.transport import Transport
 
 
@@ -39,6 +40,14 @@ def test_resources_are_wired() -> None:
         assert isinstance(client.payments, PaymentsResource)
         assert isinstance(client.verify, VerifyResource)
         assert isinstance(client.transactions, TransactionsResource)
+        assert isinstance(client.webhooks, WebhooksResource)
+
+
+def test_webhooks_share_transactions_with_client() -> None:
+    """WebhooksResource composes the same transactions instance for the forgery roundtrip."""
+    cfg = PSIPConfig(api_key=SecretStr("hp_test_key"))
+    with PaymentServiceClient(cfg) as client:
+        assert client.webhooks._transactions is client.transactions
 
 
 def test_close_closes_underlying_transport() -> None:

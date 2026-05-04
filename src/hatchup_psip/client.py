@@ -1,9 +1,9 @@
 """High-level synchronous client facade.
 
 :class:`PaymentServiceClient` wires a :class:`PSIPConfig` to the four
-resource proxies (``payments``, ``verify``, ``transactions`` — and
-``webhooks`` once that ships in the next milestone). The client owns the
-underlying :class:`Transport` and is responsible for closing it.
+resource proxies (``payments``, ``verify``, ``transactions``, and
+``webhooks``). The client owns the underlying :class:`Transport` and
+is responsible for closing it.
 
 Multi-tenant note: there is **no** module-level singleton. Consumers that
 hold per-tenant credentials (e.g. launchpad-backend, where each Company
@@ -20,6 +20,7 @@ from hatchup_psip.config import PSIPConfig
 from hatchup_psip.resources.payments import PaymentsResource
 from hatchup_psip.resources.transactions import TransactionsResource
 from hatchup_psip.resources.verify import VerifyResource
+from hatchup_psip.resources.webhooks import WebhooksResource
 from hatchup_psip.transport import Transport
 
 
@@ -44,6 +45,7 @@ class PaymentServiceClient:
         self.payments = PaymentsResource(self._transport)
         self.verify = VerifyResource(self._transport)
         self.transactions = TransactionsResource(self._transport)
+        self.webhooks = WebhooksResource(transactions=self.transactions)
 
     @property
     def config(self) -> PSIPConfig:

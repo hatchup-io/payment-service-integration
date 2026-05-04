@@ -12,7 +12,10 @@ from hatchup_psip.exceptions import PSIPNotFoundError
 from hatchup_psip.exceptions import PSIPProtocolError
 from hatchup_psip.exceptions import PSIPServerError
 from hatchup_psip.exceptions import PSIPValidationError
+from hatchup_psip.exceptions import PSIPWebhookForgeryError
+from hatchup_psip.exceptions import PSIPWebhookValidationError
 from hatchup_psip.transport import Transport
+from hatchup_psip.webhooks import WebhookDispatcher
 
 __all__ = [
     "PSIPAPIError",
@@ -24,8 +27,11 @@ __all__ = [
     "PSIPProtocolError",
     "PSIPServerError",
     "PSIPValidationError",
+    "PSIPWebhookForgeryError",
+    "PSIPWebhookValidationError",
     "PaymentServiceClient",
     "RetryPolicy",
     "Transport",
+    "WebhookDispatcher",
     "__version__",
 ]
