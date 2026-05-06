@@ -69,6 +69,21 @@ class TestPaymentCreateRequest:
         with pytest.raises(ValidationError):
             req.sandbox = False  # type: ignore[misc]
 
+    def test_metadata_default_is_none(self) -> None:
+        req = PaymentCreateRequest(**self._valid_kwargs())
+        assert req.metadata is None
+        # Server omits the field from the wire when None.
+        dumped = req.model_dump(mode="json", exclude_none=True)
+        assert "metadata" not in dumped
+
+    def test_metadata_passed_through_to_dump(self) -> None:
+        req = PaymentCreateRequest(
+            **self._valid_kwargs(),
+            metadata={"user_slug": "u_aBc", "project_slug": "p_xYz"},
+        )
+        dumped = req.model_dump(mode="json")
+        assert dumped["metadata"] == {"user_slug": "u_aBc", "project_slug": "p_xYz"}
+
 
 class TestPaymentCreateResponse:
     def test_parses_envelope_data(self) -> None:
@@ -98,6 +113,7 @@ class TestRepaymentRequest:
         assert req.success_webhook is None
         assert req.failure_webhook is None
         assert req.sandbox is None
+        assert req.metadata is None
 
     def test_optional_fields_passthrough(self) -> None:
         req = RepaymentRequest(

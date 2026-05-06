@@ -99,6 +99,15 @@ class TestTransactionListFilters:
         with pytest.raises(ValidationError):
             TransactionListFilters(page=0)
 
+    def test_order_id_startswith_default_omits_param(self) -> None:
+        params = TransactionListFilters().to_query_params()
+        assert "order_id_startswith" not in params
+
+    def test_order_id_startswith_emitted_when_set(self) -> None:
+        filters = TransactionListFilters(order_id_startswith="u_aBc_p_xYz_")
+        params = filters.to_query_params()
+        assert params["order_id_startswith"] == "u_aBc_p_xYz_"
+
 
 class TestTransactionPage:
     def _page(self, *, results: int, page_size: int) -> TransactionPage:

@@ -31,6 +31,16 @@ class PaymentCreateRequest(BaseModel):
     success_webhook: HttpUrl
     failure_webhook: HttpUrl
     sandbox: bool = True
+    metadata: dict[str, str] | None = Field(
+        default=None,
+        description=(
+            "Optional flat key→string map forwarded to the Stripe Checkout "
+            "Session's metadata. Server enforces Stripe's constraints "
+            "(≤50 keys, ≤40-char keys, ≤500-char values) and silently strips "
+            "the reserved ``payment_request_id`` key on merge. Server feature "
+            "since payment-system commit 9d32b43."
+        ),
+    )
 
     @field_validator("currency", mode="before")
     @classmethod
@@ -62,6 +72,10 @@ class RepaymentRequest(BaseModel):
     success_webhook: HttpUrl | None = None
     failure_webhook: HttpUrl | None = None
     sandbox: bool | None = None
+    metadata: dict[str, str] | None = Field(
+        default=None,
+        description="See :attr:`PaymentCreateRequest.metadata`.",
+    )
 
 
 __all__ = [

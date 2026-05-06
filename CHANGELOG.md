@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-06
+
+### Added
+
+- **`PaymentCreateRequest.metadata`** and **`RepaymentRequest.metadata`** — optional `dict[str, str]` field forwarded to the Stripe Checkout Session's metadata. Used by SHARED-mode launchpad consumers to attribute Stripe-side reporting back to the right user/project. Server enforces Stripe's constraints (≤50 keys, ≤40-char keys, ≤500-char values, scalar-only values) and silently strips the reserved `payment_request_id` key on merge.
+- **`TransactionListFilters.order_id_startswith`** — server-side prefix filter on `Transaction.order_id`. SHARED-mode consumers pass the project's slug prefix here so the server filters before responding instead of returning every other project's rows. Composes with the existing date / status / sandbox / verified filters.
+
+### Changed
+
+- `tests/contract/fixtures/server_contract.json` updated to include `metadata` on the payment/repayment requests and `order_id_startswith` on the transactions list query params. Captured against `hatchup-payment-system feat/integrate-with-PISP @ 9d32b43`.
+
+### Compatibility
+
+- Both fields are optional with empty/no-filter defaults — every 0.4.0 caller continues to work unchanged.
+- Server-side support: requires payment-system at commit 9d32b43 or later. Older servers will return a 400 if you pass `metadata` (unknown body key) or silently ignore `order_id_startswith` (unknown query param). Don't bump to 0.5.0 in your consumer until the server is updated.
+
 ## [0.4.0] — 2026-05-04
 
 ### Added
@@ -77,7 +93,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Exception hierarchy rooted at `PSIPError`: `PSIPNetworkError`, `PSIPProtocolError`, `PSIPAPIError` (with `PSIPAuthError`, `PSIPValidationError`, `PSIPNotFoundError`, `PSIPServerError` subclasses).
 - Test scaffolding: `pytest` + `respx` for HTTP mocking. `--import-mode=importlib`. Coverage gate.
 
-[Unreleased]: https://github.com/hatchup-io/payment-service-integration/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/hatchup-io/payment-service-integration/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.3.5...v0.4.0
 [0.3.5]: https://github.com/hatchup-io/payment-service-integration/compare/v0.3.0...v0.3.5
 [0.3.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.2.0...v0.3.0

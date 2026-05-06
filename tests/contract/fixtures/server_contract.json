@@ -2,7 +2,7 @@
   "_meta": {
     "captured_from": "Manual digest of hatchup-payment-system/apps/payments/schema.py",
     "captured_at": "2026-05-04",
-    "captured_against_commit": "main HEAD as of capture date — refresh via `just refresh-contract` once payment-system /api/schema/ is reachable in CI",
+    "captured_against_commit": "hatchup-payment-system feat/integrate-with-PISP @ 9d32b43 — refresh via `just refresh-contract` once /api/schema/ is reachable in CI",
     "server_version": "1.0.0",
     "purpose": "Tripwire for server schema drift. When payment-system adds/removes/renames a field, this snapshot must be updated and the matching SDK pydantic model adjusted in the same PR."
   },
@@ -16,7 +16,8 @@
         "payment_type",
         "success_webhook",
         "failure_webhook",
-        "sandbox"
+        "sandbox",
+        "metadata"
       ],
       "response_data_fields": [
         "payment_url",
@@ -30,7 +31,8 @@
         "order_id",
         "success_webhook",
         "failure_webhook",
-        "sandbox"
+        "sandbox",
+        "metadata"
       ],
       "response_data_fields": [
         "payment_url",
@@ -58,6 +60,7 @@
         "status",
         "sandbox",
         "verified",
+        "order_id_startswith",
         "page",
         "page_size"
       ],

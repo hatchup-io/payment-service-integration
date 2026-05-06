@@ -51,6 +51,16 @@ class TransactionListFilters(BaseModel):
     status: TransactionStatus | None = None
     sandbox: bool | None = None
     verified: bool | None = None
+    order_id_startswith: str | None = Field(
+        default=None,
+        description=(
+            "Server-side prefix filter on Transaction.order_id. SHARED-mode "
+            "consumers pass the project's slug prefix here so the server "
+            "filters before responding instead of returning every other "
+            "project's rows. Server feature since payment-system commit "
+            "9d32b43."
+        ),
+    )
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 
@@ -66,6 +76,8 @@ class TransactionListFilters(BaseModel):
             params["sandbox"] = "true" if self.sandbox else "false"
         if self.verified is not None:
             params["verified"] = "true" if self.verified else "false"
+        if self.order_id_startswith is not None:
+            params["order_id_startswith"] = self.order_id_startswith
         params["page"] = str(self.page)
         params["page_size"] = str(self.page_size)
         return params
