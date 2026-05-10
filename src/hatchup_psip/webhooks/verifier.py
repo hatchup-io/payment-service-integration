@@ -1,26 +1,99 @@
-"""Server-roundtrip forgery guard for inbound webhooks.
+"""Forgery guards for inbound webhooks — two flavors.
 
-The payment-system does **not** sign outbound webhooks today (no HMAC,
-no shared secret — see ``apps/payments/webhooks.py:37-46``). Anyone who
-learns or guesses the consumer's ``success_webhook_url`` can forge a
-``{order_id, status:"completed", amount, ...}`` POST. The dispatcher's
-default ``verify=True`` mode runs :func:`verify_event` before invoking
-any user handler so a forgery is caught before it can mark an order
-paid in the consumer's database.
+1. **HMAC signature** (chunk 1.5+): payment-system signs new-style
+   ``WebhookEndpoint`` deliveries with HMAC-SHA256 over
+   ``f"{timestamp}.{body}"`` using the per-endpoint ``signing_secret``.
+   Use :func:`verify_signature` *before* parsing.
 
-When payment-system gains HMAC signing, this module stays — it's also
-useful as a defence-in-depth check (signature OR roundtrip). The
-roundtrip becomes optional then.
+2. **Server roundtrip** (legacy): per-row deliveries
+   (``PaymentRequest.success_webhook_url`` etc.) carry no signature.
+   :func:`verify_event` confirms the payload by re-fetching the
+   server's record. Used by the dispatcher's ``verify=True`` mode.
+
+Either is sufficient. Defence-in-depth is encouraged on the
+HMAC path: verify the signature *and* roundtrip.
 """
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
+import hmac
+import time
+
 from hatchup_psip.exceptions import PSIPNotFoundError
 from hatchup_psip.exceptions import PSIPWebhookForgeryError
+from hatchup_psip.exceptions import PSIPWebhookValidationError
 from hatchup_psip.models.transaction import Transaction
 from hatchup_psip.models.webhook import PaymentCompletedEvent
 from hatchup_psip.resources.transactions import AsyncTransactionsResource
 from hatchup_psip.resources.transactions import TransactionsResource
+
+_SIGNATURE_HEADER = "X-Hatchup-Signature"
+_DEFAULT_TOLERANCE_SECONDS = 300  # 5 minutes — matches Stripe's default tolerance.
+
+
+def _parse_signature_header(header_value: str) -> tuple[int, str]:
+    """Decode ``t=<unix>,v1=<hex>`` into ``(timestamp_int, hex_digest)``.
+
+    Tolerates extra unknown ``vN=...`` schemes for forward compatibility.
+    """
+    timestamp: int | None = None
+    digest: str | None = None
+    for part in header_value.split(","):
+        if "=" not in part:
+            continue
+        name, _, value = part.strip().partition("=")
+        if name == "t":
+            with contextlib.suppress(ValueError):
+                timestamp = int(value)
+        elif name == "v1":
+            digest = value
+    if timestamp is None or digest is None:
+        raise PSIPWebhookValidationError(
+            f"{_SIGNATURE_HEADER} header missing t= or v1= scheme",
+        )
+    return (timestamp, digest)
+
+
+def verify_signature(
+    *,
+    body: bytes | str,
+    signing_secret: str,
+    header_value: str,
+    tolerance_seconds: int = _DEFAULT_TOLERANCE_SECONDS,
+    now_func: callable[[], float] | None = None,  # type: ignore[type-arg]
+) -> None:
+    """Verify an ``X-Hatchup-Signature`` header against ``body``.
+
+    Raises :class:`PSIPWebhookForgeryError` on signature mismatch or
+    timestamp drift outside ``tolerance_seconds``. Returns ``None`` on
+    success.
+
+    ``body`` must be the **raw** request body (the same bytes Stripe
+    signed) — not a re-serialised dict. ``signing_secret`` is the value
+    returned at create / rotate-secret time.
+    """
+    if not signing_secret:
+        raise PSIPWebhookValidationError("signing_secret is required to verify a webhook")
+    if not header_value:
+        raise PSIPWebhookForgeryError(f"missing {_SIGNATURE_HEADER} header")
+
+    timestamp, expected_hex = _parse_signature_header(header_value)
+
+    now_unix = (now_func or time.time)()
+    if abs(now_unix - timestamp) > tolerance_seconds:
+        raise PSIPWebhookForgeryError(
+            f"webhook timestamp {timestamp} outside tolerance {tolerance_seconds}s of now {int(now_unix)}",
+        )
+
+    body_str = body.decode("utf-8") if isinstance(body, bytes) else body
+    msg = f"{timestamp}.{body_str}".encode()
+    actual_hex = hmac.new(signing_secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(actual_hex, expected_hex):
+        raise PSIPWebhookForgeryError("HMAC-SHA256 signature mismatch")
+
 
 # Webhook event.status -> server Transaction.status it must match
 _EXPECTED_SERVER_STATUS = {"completed": "succeeded"}
@@ -96,4 +169,4 @@ async def async_verify_event(
     return _check_match(event, tx)
 
 
-__all__ = ["async_verify_event", "verify_event"]
+__all__ = ["async_verify_event", "verify_event", "verify_signature"]

@@ -6,9 +6,18 @@ from pydantic import SecretStr
 
 from hatchup_psip.client import PaymentServiceClient
 from hatchup_psip.config import PSIPConfig
+from hatchup_psip.resources.catalog import PricesResource
+from hatchup_psip.resources.catalog import ProductsResource
+from hatchup_psip.resources.customers import CustomersResource
+from hatchup_psip.resources.invoices import InvoicesResource
+from hatchup_psip.resources.payment_intents import PaymentIntentsResource
 from hatchup_psip.resources.payments import PaymentsResource
+from hatchup_psip.resources.setup_intents import PaymentMethodsResource
+from hatchup_psip.resources.setup_intents import SetupIntentsResource
+from hatchup_psip.resources.subscriptions import SubscriptionsResource
 from hatchup_psip.resources.transactions import TransactionsResource
 from hatchup_psip.resources.verify import VerifyResource
+from hatchup_psip.resources.webhook_endpoints import WebhookEndpointsResource
 from hatchup_psip.resources.webhooks import WebhooksResource
 from hatchup_psip.transport import Transport
 
@@ -41,6 +50,16 @@ def test_resources_are_wired() -> None:
         assert isinstance(client.verify, VerifyResource)
         assert isinstance(client.transactions, TransactionsResource)
         assert isinstance(client.webhooks, WebhooksResource)
+        # v1.0 resources (Phase 4):
+        assert isinstance(client.customers, CustomersResource)
+        assert isinstance(client.payment_intents, PaymentIntentsResource)
+        assert isinstance(client.setup_intents, SetupIntentsResource)
+        assert isinstance(client.payment_methods, PaymentMethodsResource)
+        assert isinstance(client.products, ProductsResource)
+        assert isinstance(client.prices, PricesResource)
+        assert isinstance(client.subscriptions, SubscriptionsResource)
+        assert isinstance(client.invoices, InvoicesResource)
+        assert isinstance(client.webhook_endpoints, WebhookEndpointsResource)
 
 
 def test_webhooks_share_transactions_with_client() -> None:
