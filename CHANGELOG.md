@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-05-13
+
+### Added
+
+- **`email` filter on `customers.list()`** (sync + async) — forwards to the existing `?email=` query param on the gateway's `GET /api/v1/customers` (case-insensitive exact match). Lets consumers implement a get-or-create pattern by recovering from a 409 on `customers.create()` and adopting the existing row.
+
+### Compatibility
+
+- New kwarg is keyword-only with a `None` default; existing `customers.list()` callers are unaffected.
+- Server-side support: the `email` query param has been present on the payment-system since the customers endpoint was introduced — no payment-system bump required.
+
 ## [0.5.0] — 2026-05-06
 
 ### Added
