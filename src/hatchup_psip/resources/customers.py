@@ -18,11 +18,14 @@ from hatchup_psip.resources._base import _Resource
 
 def _list_params(
     *,
+    email: str | None,
     sandbox: bool | None,
     page: int,
     page_size: int,
 ) -> dict[str, Any]:
     params: dict[str, Any] = {"page": page, "page_size": page_size}
+    if email:
+        params["email"] = email
     if sandbox is not None:
         params["sandbox"] = "true" if sandbox else "false"
     return params
@@ -64,6 +67,7 @@ class CustomersResource(_Resource):
     def list(
         self,
         *,
+        email: str | None = None,
         sandbox: bool | None = None,
         page: int = 1,
         page_size: int = 20,
@@ -71,7 +75,7 @@ class CustomersResource(_Resource):
         data = self._transport.request(
             "GET",
             "customers",
-            params=_list_params(sandbox=sandbox, page=page, page_size=page_size),
+            params=_list_params(email=email, sandbox=sandbox, page=page, page_size=page_size),
         )
         return _parse_response(CustomerListPage, data)
 
@@ -136,6 +140,7 @@ class AsyncCustomersResource(_AsyncResource):
     async def list(
         self,
         *,
+        email: str | None = None,
         sandbox: bool | None = None,
         page: int = 1,
         page_size: int = 20,
@@ -143,7 +148,7 @@ class AsyncCustomersResource(_AsyncResource):
         data = await self._transport.request(
             "GET",
             "customers",
-            params=_list_params(sandbox=sandbox, page=page, page_size=page_size),
+            params=_list_params(email=email, sandbox=sandbox, page=page, page_size=page_size),
         )
         return _parse_response(CustomerListPage, data)
 
