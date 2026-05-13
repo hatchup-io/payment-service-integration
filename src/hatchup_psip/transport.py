@@ -22,6 +22,7 @@ from __future__ import annotations
 import asyncio
 import json as _json
 import time
+import uuid
 from types import TracebackType
 from typing import Any
 from typing import Self
@@ -38,6 +39,8 @@ from hatchup_psip.exceptions import PSIPServerError
 from hatchup_psip.exceptions import PSIPValidationError
 
 _REQUEST_ID_HEADER = "X-Request-ID"
+_IDEMPOTENCY_HEADER = "Idempotency-Key"
+_MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
 class Transport:
@@ -91,8 +94,15 @@ class Transport:
         *,
         json: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
         """Execute a request and return the envelope's ``data`` field.
+
+        Mutating methods (``POST``/``PUT``/``PATCH``/``DELETE``) always carry
+        an ``Idempotency-Key`` header. Callers can pin one via
+        ``idempotency_key`` when they have a natural business key; otherwise
+        a UUID4 is generated and reused across retries so the gateway treats
+        retries of a failed request as the same call.
 
         Raises one of:
 
@@ -103,11 +113,18 @@ class Transport:
           a 2xx status code by saying ``status="failure"``.
         - :class:`PSIPAPIError` (one of its subclasses) on HTTP 4xx/5xx.
         """
+        headers = _idempotency_headers(method, idempotency_key)
         retry = self._config.retry
         last_network_error: httpx.RequestError | None = None
         for attempt in range(retry.max_retries + 1):
             try:
-                response = self._client.request(method, path, json=json, params=params)
+                response = self._client.request(
+                    method,
+                    path,
+                    json=json,
+                    params=params,
+                    headers=headers,
+                )
             except httpx.RequestError as exc:
                 last_network_error = exc
                 if attempt < retry.max_retries:
@@ -188,16 +205,25 @@ class AsyncTransport:
         *,
         json: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
         """Execute an async request and return the envelope's ``data`` field.
 
-        Same exception contract as :meth:`Transport.request`.
+        Same exception contract and idempotency-key semantics as
+        :meth:`Transport.request`.
         """
+        headers = _idempotency_headers(method, idempotency_key)
         retry = self._config.retry
         last_network_error: httpx.RequestError | None = None
         for attempt in range(retry.max_retries + 1):
             try:
-                response = await self._client.request(method, path, json=json, params=params)
+                response = await self._client.request(
+                    method,
+                    path,
+                    json=json,
+                    params=params,
+                    headers=headers,
+                )
             except httpx.RequestError as exc:
                 last_network_error = exc
                 if attempt < retry.max_retries:
@@ -219,6 +245,16 @@ class AsyncTransport:
 # --------------------------------------------------------------------------- #
 # Shared response / error helpers
 # --------------------------------------------------------------------------- #
+
+
+def _idempotency_headers(method: str, idempotency_key: str | None) -> dict[str, str] | None:
+    """Build per-request headers, attaching an ``Idempotency-Key`` for
+    mutating methods. The same key is reused across SDK-level retries so
+    the gateway recognizes them as one call.
+    """
+    if method.upper() not in _MUTATING_METHODS:
+        return None
+    return {_IDEMPOTENCY_HEADER: idempotency_key or uuid.uuid4().hex}
 
 
 def _handle_response(response: httpx.Response) -> dict[str, Any]:

@@ -93,6 +93,62 @@ def test_passes_json_and_params(transport: Transport) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Idempotency-Key header
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH", "DELETE"])
+def test_mutating_methods_send_idempotency_key(transport: Transport, method: str) -> None:
+    with respx.mock:
+        route = respx.route(method=method, url=URL).mock(
+            return_value=httpx.Response(200, json=_envelope(data={})),
+        )
+        transport.request(method, "payment", json={} if method != "DELETE" else None)
+
+    sent = route.calls.last.request
+    assert sent.headers["Idempotency-Key"]
+    # Default keys are uuid4 hex — 32 lowercase hex chars.
+    assert len(sent.headers["Idempotency-Key"]) == 32
+
+
+def test_get_does_not_send_idempotency_key(transport: Transport) -> None:
+    with respx.mock:
+        route = respx.get(URL).mock(return_value=httpx.Response(200, json=_envelope(data={})))
+        transport.request("GET", "payment")
+
+    assert "Idempotency-Key" not in route.calls.last.request.headers
+
+
+def test_caller_supplied_idempotency_key_is_used_verbatim(transport: Transport) -> None:
+    with respx.mock:
+        route = respx.post(URL).mock(return_value=httpx.Response(200, json=_envelope(data={})))
+        transport.request("POST", "payment", json={}, idempotency_key="wallet-deposit-42")
+
+    assert route.calls.last.request.headers["Idempotency-Key"] == "wallet-deposit-42"
+
+
+def test_idempotency_key_is_stable_across_retries(fast_config_with_retries: PSIPConfig) -> None:
+    """A single logical request must reuse the same key across retries —
+    otherwise the gateway treats each retry as a brand-new call and the
+    idempotency guarantee is lost.
+    """
+    responses = [
+        httpx.Response(503, json=_envelope(status="failure", message="busy")),
+        httpx.Response(200, json=_envelope(data={"ok": True})),
+    ]
+    with respx.mock:
+        route = respx.post(URL).mock(side_effect=responses)
+        with Transport(fast_config_with_retries) as t:
+            t.request("POST", "payment", json={})
+
+    assert route.call_count == 2
+    first_key = route.calls[0].request.headers["Idempotency-Key"]
+    second_key = route.calls[1].request.headers["Idempotency-Key"]
+    assert first_key
+    assert first_key == second_key
+
+
+# --------------------------------------------------------------------------- #
 # HTTP-status → exception mapping
 # --------------------------------------------------------------------------- #
 
