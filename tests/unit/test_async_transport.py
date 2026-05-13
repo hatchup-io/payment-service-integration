@@ -72,6 +72,55 @@ async def test_sets_authorization_and_user_agent(fast_config: PSIPConfig) -> Non
 
 
 # --------------------------------------------------------------------------- #
+# Idempotency-Key header
+# --------------------------------------------------------------------------- #
+
+
+async def test_post_sends_idempotency_key(fast_config: PSIPConfig) -> None:
+    with respx.mock:
+        route = respx.post(URL).mock(return_value=httpx.Response(200, json=_envelope(data={})))
+        async with AsyncTransport(fast_config) as t:
+            await t.request("POST", "payment", json={})
+
+    assert len(route.calls.last.request.headers["Idempotency-Key"]) == 32
+
+
+async def test_get_does_not_send_idempotency_key(fast_config: PSIPConfig) -> None:
+    with respx.mock:
+        route = respx.get(URL).mock(return_value=httpx.Response(200, json=_envelope(data={})))
+        async with AsyncTransport(fast_config) as t:
+            await t.request("GET", "payment")
+
+    assert "Idempotency-Key" not in route.calls.last.request.headers
+
+
+async def test_caller_supplied_idempotency_key_is_used_verbatim(fast_config: PSIPConfig) -> None:
+    with respx.mock:
+        route = respx.post(URL).mock(return_value=httpx.Response(200, json=_envelope(data={})))
+        async with AsyncTransport(fast_config) as t:
+            await t.request("POST", "payment", json={}, idempotency_key="wallet-deposit-42")
+
+    assert route.calls.last.request.headers["Idempotency-Key"] == "wallet-deposit-42"
+
+
+async def test_idempotency_key_stable_across_retries(fast_config_with_retries: PSIPConfig) -> None:
+    responses = [
+        httpx.Response(503, json=_envelope(status="failure", message="busy")),
+        httpx.Response(200, json=_envelope(data={"ok": True})),
+    ]
+    with respx.mock:
+        route = respx.post(URL).mock(side_effect=responses)
+        async with AsyncTransport(fast_config_with_retries) as t:
+            await t.request("POST", "payment", json={})
+
+    assert route.call_count == 2
+    first_key = route.calls[0].request.headers["Idempotency-Key"]
+    second_key = route.calls[1].request.headers["Idempotency-Key"]
+    assert first_key
+    assert first_key == second_key
+
+
+# --------------------------------------------------------------------------- #
 # Error mapping (the underlying _classify_error is shared with sync — one smoke each)
 # --------------------------------------------------------------------------- #
 
