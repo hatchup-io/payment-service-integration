@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from hatchup_psip.models.payment import CheckoutSessionVerifyResponse
 from hatchup_psip.models.payment import PaymentCreateRequest
 from hatchup_psip.models.payment import PaymentCreateResponse
 from hatchup_psip.models.payment import RepaymentRequest
@@ -70,6 +71,21 @@ class PaymentsResource(_Resource):
         data = self._transport.request("POST", "repayment", json=body)
         return _parse_response(PaymentCreateResponse, data)
 
+    def verify_session(self, session_id: str, /) -> CheckoutSessionVerifyResponse:
+        """Retrieve the Checkout Session live from Stripe + apply completion.
+
+        Client-initiated polling alternative to the webhook fan-out:
+        useful when the success page is the only signal the user gives
+        the application (browser closes before the webhook lands, or the
+        webhook isn't configured at all). Idempotent server-side; safe
+        to call repeatedly from "check again" UIs.
+
+        ``payment_status`` mirrors Stripe — typically ``paid``, ``unpaid``,
+        ``no_payment_required``. Only ``paid`` populates ``transaction_id``.
+        """
+        data = self._transport.request("POST", f"checkout-sessions/{session_id}/verify")
+        return _parse_response(CheckoutSessionVerifyResponse, data)
+
 
 class AsyncPaymentsResource(_AsyncResource):
     """Async equivalent of :class:`PaymentsResource`."""
@@ -96,6 +112,10 @@ class AsyncPaymentsResource(_AsyncResource):
         body = _build_recreate_body(order_id, success_webhook, failure_webhook, sandbox)
         data = await self._transport.request("POST", "repayment", json=body)
         return _parse_response(PaymentCreateResponse, data)
+
+    async def verify_session(self, session_id: str, /) -> CheckoutSessionVerifyResponse:
+        data = await self._transport.request("POST", f"checkout-sessions/{session_id}/verify")
+        return _parse_response(CheckoutSessionVerifyResponse, data)
 
 
 __all__ = ["AsyncPaymentsResource", "PaymentsResource"]

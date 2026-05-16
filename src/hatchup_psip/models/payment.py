@@ -58,6 +58,26 @@ class PaymentCreateResponse(BaseModel):
     order_id: str
 
 
+class CheckoutSessionVerifyResponse(BaseModel):
+    """Body of the ``data`` envelope for
+    ``POST /api/v1/checkout-sessions/<session_id>/verify``.
+
+    ``payment_status`` mirrors Stripe's Checkout Session vocabulary:
+    ``paid``, ``unpaid``, ``no_payment_required``. ``transaction_id`` is
+    populated only when the session was applied to a local Transaction
+    (i.e. ``payment_status == 'paid'``); otherwise it's ``None``.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    session_id: str
+    order_id: str
+    payment_status: str
+    amount: Decimal
+    currency: str
+    transaction_id: str | None = None
+
+
 class RepaymentRequest(BaseModel):
     """Body for ``POST /api/v1/repayment``.
 
@@ -79,6 +99,7 @@ class RepaymentRequest(BaseModel):
 
 
 __all__ = [
+    "CheckoutSessionVerifyResponse",
     "PaymentCreateRequest",
     "PaymentCreateResponse",
     "PaymentType",

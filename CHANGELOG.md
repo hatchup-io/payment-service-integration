@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.2] — 2026-05-16
+
+### Added
+
+- **`payments.verify_session(session_id)`** (sync + async) — wraps the new payment-system endpoint `POST /api/v1/checkout-sessions/<session_id>/verify`. Retrieves the Checkout Session live from Stripe and applies the completion to the local Transaction on the gateway side; idempotent. Use as a client-initiated fallback when the webhook fan-out can't be relied on (the user closes the tab right after paying, the webhook isn't configured yet, etc.). Returns a `CheckoutSessionVerifyResponse` with the session_id, order_id, payment_status (`paid`/`unpaid`/`no_payment_required`), amount, currency, and transaction_id (populated only when `paid`).
+
+### Compatibility
+
+- Additive; existing callers are unaffected.
+- Server-side support: requires payment-system at commit `1d13b63` or later. Older servers return a 404 on the new path.
+
 ## [1.1.1] — 2026-05-13
 
 ### Added
