@@ -17,6 +17,7 @@
         "success_webhook",
         "failure_webhook",
         "sandbox",
+        "customer",
         "metadata"
       ],
       "response_data_fields": [

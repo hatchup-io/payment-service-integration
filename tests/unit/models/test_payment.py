@@ -84,6 +84,24 @@ class TestPaymentCreateRequest:
         dumped = req.model_dump(mode="json")
         assert dumped["metadata"] == {"user_slug": "u_aBc", "project_slug": "p_xYz"}
 
+    def test_customer_default_is_none(self) -> None:
+        req = PaymentCreateRequest(**self._valid_kwargs())
+        assert req.customer is None
+        dumped = req.model_dump(mode="json", exclude_none=True)
+        assert "customer" not in dumped
+
+    def test_customer_passed_through_to_dump(self) -> None:
+        req = PaymentCreateRequest(
+            **self._valid_kwargs(),
+            customer="cus_AbCdEf123",
+        )
+        dumped = req.model_dump(mode="json")
+        assert dumped["customer"] == "cus_AbCdEf123"
+
+    def test_customer_rejects_empty_string(self) -> None:
+        with pytest.raises(ValidationError):
+            PaymentCreateRequest(**self._valid_kwargs() | {"customer": ""})
+
 
 class TestPaymentCreateResponse:
     def test_parses_envelope_data(self) -> None:

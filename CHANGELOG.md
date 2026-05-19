@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.3] — 2026-05-19
+
+### Added
+
+- **`Invoice.number`** — Stripe's human-readable invoice number (e.g. `IN_TEST-0001`) is now mirrored on `Invoice` and surfaced by `invoices.list()` / `invoices.retrieve()`. Was always returned by Stripe but dropped during gateway serialization; both sides now preserve it. Optional (`None` for invoices Stripe hasn't numbered yet).
+- **`PaymentCreateRequest.customer`** — optional Stripe Customer id (`cus_…`) attaches the Checkout Session to a known Customer so saved cards + the Billing Portal can resolve back to it. Required for wallet-funding flows that need card-on-file behaviour. Server passes through to `stripe.checkout.Session.create(customer=…)`.
+
+### Compatibility
+
+- Additive; existing callers are unaffected.
+- Server-side support for both fields requires the matching payment-system bump (see [STRIPE_GATEWAY_PLAN.md](https://github.com/hatchup-io/hatchup-payment-system/blob/main/docs/STRIPE_GATEWAY_PLAN.md)). Older servers ignore the new request field and omit `number` from responses (deserializes as `None`).
+
+### Notes for consumers
+
+- Outbound webhook bodies on the gateway now include a stable `event_id` of the form `<event_type>:<resource_id>` (e.g. `payment.completed:cs_test_123`). Pure server change — no SDK API change — but parsers can rely on the field being present going forward, and the [INTEGRATION_GUIDE](https://github.com/hatchup-io/hatchup-payment-system/blob/main/docs/INTEGRATION_GUIDE.md) §11 promise is now backed by code.
+
 ## [1.1.2] — 2026-05-16
 
 ### Added

@@ -31,6 +31,16 @@ class PaymentCreateRequest(BaseModel):
     success_webhook: HttpUrl
     failure_webhook: HttpUrl
     sandbox: bool = True
+    customer: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "Optional Stripe Customer id (``cus_…``). When provided, the "
+            "Checkout Session is attached to this Customer so saved cards "
+            "and the Billing Portal can resolve back to it. Required for "
+            "wallet-funding flows that need card-on-file behaviour."
+        ),
+    )
     metadata: dict[str, str] | None = Field(
         default=None,
         description=(

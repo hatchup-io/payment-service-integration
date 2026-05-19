@@ -23,6 +23,7 @@ def _invoice_payload(**overrides: object) -> dict[str, object]:
     base: dict[str, object] = {
         "id": "in_test",
         "object": "invoice",
+        "number": "IN_TEST-0001",
         "customer": "cus_test",
         "subscription": "sub_test",
         "status": "paid",
@@ -52,6 +53,7 @@ def test_retrieve_invoice(psip_client: PaymentServiceClient) -> None:
         invoice = psip_client.invoices.retrieve("in_test")
     assert isinstance(invoice, Invoice)
     assert invoice.status == "paid"
+    assert invoice.number == "IN_TEST-0001"
 
 
 def test_list_filters_by_subscription_and_status(psip_client: PaymentServiceClient) -> None:

@@ -21,6 +21,7 @@ class Invoice(BaseModel):
 
     id: str
     object: str = "invoice"
+    number: str | None = None
     customer: str | None = None
     subscription: str | None = None
     status: InvoiceStatus
