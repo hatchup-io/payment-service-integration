@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.4] — 2026-05-19
+
+### Added
+
+- **`PaymentCreateRequest.create_invoice`** — opt the hosted Checkout into Stripe Invoice generation. When `True` (and `payment_type="one_time"`), the gateway forwards `invoice_creation={"enabled": True}` to `stripe.checkout.Session.create()` so the session completion materializes a real Invoice (with `number`, `hosted_invoice_url`, `invoice_pdf`). Required by wallet-funding flows that surface a billing history. Default `False` — existing callers see no behaviour change.
+
+### Compatibility
+
+- Additive; defaults preserve existing behaviour.
+- Server-side support: requires the matching payment-system bump. Older gateways ignore the new request field; the SDK still serializes it, so a forward-incompatible deployment won't error — it just won't generate the invoice.
+
+### Notes
+
+- Pairs with a gateway change to `GET /api/v1/invoices` that flips to a **live Stripe list** (with local-mirror upsert) when the request scopes to a specific `customer=`. Before, the gateway returned only invoices that had landed in the local mirror via webhook; subscription dunning + one-off invoices created on deployments that never received our webhook were invisible. No SDK API change — same `invoices.list(customer=…, page=…, page_size=…)` call, just more complete data.
+
 ## [1.1.3] — 2026-05-19
 
 ### Added

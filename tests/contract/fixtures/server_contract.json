@@ -18,6 +18,7 @@
         "failure_webhook",
         "sandbox",
         "customer",
+        "create_invoice",
         "metadata"
       ],
       "response_data_fields": [

@@ -102,6 +102,18 @@ class TestPaymentCreateRequest:
         with pytest.raises(ValidationError):
             PaymentCreateRequest(**self._valid_kwargs() | {"customer": ""})
 
+    def test_create_invoice_defaults_to_false(self) -> None:
+        req = PaymentCreateRequest(**self._valid_kwargs())
+        assert req.create_invoice is False
+
+    def test_create_invoice_true_round_trips(self) -> None:
+        req = PaymentCreateRequest(
+            **self._valid_kwargs(),
+            create_invoice=True,
+        )
+        dumped = req.model_dump(mode="json")
+        assert dumped["create_invoice"] is True
+
 
 class TestPaymentCreateResponse:
     def test_parses_envelope_data(self) -> None:

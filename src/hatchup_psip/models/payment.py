@@ -41,6 +41,17 @@ class PaymentCreateRequest(BaseModel):
             "wallet-funding flows that need card-on-file behaviour."
         ),
     )
+    create_invoice: bool = Field(
+        default=False,
+        description=(
+            "When True (and ``payment_type=one_time``), Stripe materializes "
+            "a real Invoice on session completion (with ``number``, "
+            "``hosted_invoice_url``, ``invoice_pdf``). Required for "
+            "wallet-funding flows that surface a billing history. Ignored "
+            "for ``subscription`` mode — Stripe creates invoices per "
+            "billing period automatically there."
+        ),
+    )
     metadata: dict[str, str] | None = Field(
         default=None,
         description=(
