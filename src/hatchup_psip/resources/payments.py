@@ -7,6 +7,8 @@ from typing import Any
 from hatchup_psip.models.payment import CheckoutSessionVerifyResponse
 from hatchup_psip.models.payment import PaymentCreateRequest
 from hatchup_psip.models.payment import PaymentCreateResponse
+from hatchup_psip.models.payment import RefundRequest
+from hatchup_psip.models.payment import RefundResponse
 from hatchup_psip.models.payment import RepaymentRequest
 from hatchup_psip.resources._base import _AsyncResource
 from hatchup_psip.resources._base import _parse_response
@@ -86,6 +88,31 @@ class PaymentsResource(_Resource):
         data = self._transport.request("POST", f"checkout-sessions/{session_id}/verify")
         return _parse_response(CheckoutSessionVerifyResponse, data)
 
+    def refund(
+        self,
+        transaction_id: str,
+        /,
+        *,
+        amount: object | None = None,
+        reason: str | None = None,
+    ) -> RefundResponse:
+        """Refund all or part of a settled transaction via Stripe.
+
+        Pass ``transaction_id`` (the payment-system Transaction UUID).
+        Omit ``amount`` for a full refund. The gateway calls Stripe's
+        Refund API by payment_intent id (resolved server-side from the
+        Transaction row) and returns the new Refund object's
+        identifier + status. Stripe fires ``charge.refunded``
+        asynchronously, which the gateway fans out to subscribers as
+        ``payment.refunded`` — clients that subscribe receive that
+        event regardless of which path triggered the refund.
+        """
+        body = RefundRequest(amount=amount, reason=reason).model_dump(  # type: ignore[arg-type]
+            mode="json", exclude_none=True,
+        )
+        data = self._transport.request("POST", f"transactions/{transaction_id}/refund", json=body)
+        return _parse_response(RefundResponse, data)
+
 
 class AsyncPaymentsResource(_AsyncResource):
     """Async equivalent of :class:`PaymentsResource`."""
@@ -116,6 +143,22 @@ class AsyncPaymentsResource(_AsyncResource):
     async def verify_session(self, session_id: str, /) -> CheckoutSessionVerifyResponse:
         data = await self._transport.request("POST", f"checkout-sessions/{session_id}/verify")
         return _parse_response(CheckoutSessionVerifyResponse, data)
+
+    async def refund(
+        self,
+        transaction_id: str,
+        /,
+        *,
+        amount: object | None = None,
+        reason: str | None = None,
+    ) -> RefundResponse:
+        body = RefundRequest(amount=amount, reason=reason).model_dump(  # type: ignore[arg-type]
+            mode="json", exclude_none=True,
+        )
+        data = await self._transport.request(
+            "POST", f"transactions/{transaction_id}/refund", json=body,
+        )
+        return _parse_response(RefundResponse, data)
 
 
 __all__ = ["AsyncPaymentsResource", "PaymentsResource"]

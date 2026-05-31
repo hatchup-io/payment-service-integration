@@ -119,10 +119,51 @@ class RepaymentRequest(BaseModel):
     )
 
 
+class RefundRequest(BaseModel):
+    """Body for ``POST /api/v1/transactions/<id>/refund``.
+
+    Omit ``amount`` for a full refund. ``reason`` is a free-text string
+    forwarded to Stripe's ``Refund.reason``-equivalent metadata; it
+    does not have to match Stripe's enum values.
+    """
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    amount: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=20,
+        decimal_places=2,
+        description="Partial-refund amount. Omit for a full refund.",
+    )
+    reason: str | None = Field(default=None, min_length=1, max_length=2000)
+
+
+class RefundResponse(BaseModel):
+    """Body of the ``data`` envelope for the refund endpoint.
+
+    Mirrors the subset of Stripe's Refund object the gateway exposes —
+    ``status`` follows Stripe's vocabulary (``pending``, ``succeeded``,
+    ``failed``, ``canceled``). ``transaction_id`` is the payment-system
+    Transaction the refund was applied to.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    refund_id: str
+    transaction_id: str
+    status: str
+    amount: Decimal
+    currency: str
+    reason: str | None = None
+
+
 __all__ = [
     "CheckoutSessionVerifyResponse",
     "PaymentCreateRequest",
     "PaymentCreateResponse",
     "PaymentType",
+    "RefundRequest",
+    "RefundResponse",
     "RepaymentRequest",
 ]
