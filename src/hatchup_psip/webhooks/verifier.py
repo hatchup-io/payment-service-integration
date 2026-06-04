@@ -20,6 +20,7 @@ import contextlib
 import hashlib
 import hmac
 import time
+from collections.abc import Callable
 
 from hatchup_psip.exceptions import PSIPNotFoundError
 from hatchup_psip.exceptions import PSIPWebhookForgeryError
@@ -62,7 +63,7 @@ def verify_signature(
     signing_secret: str,
     header_value: str,
     tolerance_seconds: int = _DEFAULT_TOLERANCE_SECONDS,
-    now_func: callable[[], float] | None = None,  # type: ignore[type-arg]
+    now_func: Callable[[], float] | None = None,
 ) -> None:
     """Verify an ``X-Hatchup-Signature`` header against ``body``.
 

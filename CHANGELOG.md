@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.5] — 2026-05-31
+
+### Added
+
+- **`payments.refund(transaction_id, amount=None, reason=None)`** (sync + async) — wraps the new payment-system endpoint `POST /api/v1/transactions/<id>/refund`. Omit `amount` for a full refund. Returns a `RefundResponse{refund_id, transaction_id, status, amount, currency, reason}` where `status` follows Stripe's vocabulary (`pending` / `succeeded` / `failed` / `canceled`). The gateway resolves the underlying `payment_intent` server-side from the Transaction row and also fans out a `payment.refunded` outbound webhook on Stripe's `charge.refunded`, so subscribers stay reconciled regardless of which side initiated the refund. Closes the SDK side of the refund-policy rollout documented in `launchpad-backend/docs/REFUND_AND_BLOCK_POLICY.md`.
+
+### Compatibility
+
+- Additive; existing callers are unaffected.
+- Server-side support: requires the matching payment-system endpoint. Older gateways return 404 on the new path.
+
 ## [1.1.4] — 2026-05-19
 
 ### Added
@@ -58,6 +69,41 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - New kwarg is keyword-only with a `None` default; existing `customers.list()` callers are unaffected.
 - Server-side support: the `email` query param has been present on the payment-system since the customers endpoint was introduced — no payment-system bump required.
+
+## [1.1.0] — 2026-05-13
+
+### Added
+
+- **Automatic `Idempotency-Key` header on every mutating request** (`POST` / `PUT` / `PATCH` / `DELETE`, sync + async). Transport generates a UUID4 per logical request and reuses it across SDK-level retries so the gateway recognizes them as one call. Callers that already hold a natural business key can pin it explicitly via `transport.request(..., idempotency_key=...)`.
+
+### Compatibility
+
+- Wire-level addition only; the public client surface is unchanged.
+- Server-side support: requires payment-system at the commit that honours the header. Older servers ignore the header silently — the request still succeeds, just without idempotency protection.
+
+## [1.0.0] — 2026-05-09
+
+Major-version bump — public surface frozen for 1.x. Pin downstream as `">=1.0,<2.0"`.
+
+### Added
+
+- **Full mirror of the gateway surface (Phase 4)** — resources covering every Phase 1 + Phase 2 server endpoint:
+  - `client.customers` — CRUD + payment-methods + portal sessions.
+  - `client.payment_intents` — create / retrieve / confirm / capture / cancel / list.
+  - `client.setup_intents` — create / retrieve / confirm / cancel / list.
+  - `client.payment_methods.detach()`.
+  - `client.catalog` (products + prices) — CRUD + deactivate.
+  - `client.subscriptions` — create / retrieve / update / cancel / resume / list.
+  - `client.invoices` — retrieve / list / upcoming-preview / pay / void.
+  - `client.webhook_endpoints` — CRUD + rotate-secret.
+- **Outbound-webhook taxonomy parsers** for `payment_intent.*`, `customer.*`, `subscription.*`, and `invoice.*` event families.
+- **HMAC signature verifier** for the chunk-1.5 `X-Hatchup-Signature` header (`t=<unix>,v1=<sha256-hex>` over `f"{ts}.{body}"`, 5-minute default tolerance).
+- 152 new tests across the new resource, parser, and signature-verifier surfaces.
+
+### Compatibility
+
+- Major bump. The previous `payments` / `verify` / `transactions` / `webhooks` surface is preserved; everything else is additive.
+- Server-side support: every new resource targets endpoints introduced in payment-system Phase 1 + 2 plus the chunk-1.5 outbound webhook signing rollout.
 
 ## [0.5.0] — 2026-05-06
 
@@ -146,7 +192,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Exception hierarchy rooted at `PSIPError`: `PSIPNetworkError`, `PSIPProtocolError`, `PSIPAPIError` (with `PSIPAuthError`, `PSIPValidationError`, `PSIPNotFoundError`, `PSIPServerError` subclasses).
 - Test scaffolding: `pytest` + `respx` for HTTP mocking. `--import-mode=importlib`. Coverage gate.
 
-[Unreleased]: https://github.com/hatchup-io/payment-service-integration/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/hatchup-io/payment-service-integration/compare/v1.1.5...HEAD
+[1.1.5]: https://github.com/hatchup-io/payment-service-integration/compare/v1.1.4...v1.1.5
+[1.1.4]: https://github.com/hatchup-io/payment-service-integration/compare/v1.1.3...v1.1.4
+[1.1.3]: https://github.com/hatchup-io/payment-service-integration/compare/v1.1.2...v1.1.3
+[1.1.2]: https://github.com/hatchup-io/payment-service-integration/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/hatchup-io/payment-service-integration/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/hatchup-io/payment-service-integration/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.5.0...v1.0.0
 [0.5.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/hatchup-io/payment-service-integration/compare/v0.3.5...v0.4.0
 [0.3.5]: https://github.com/hatchup-io/payment-service-integration/compare/v0.3.0...v0.3.5

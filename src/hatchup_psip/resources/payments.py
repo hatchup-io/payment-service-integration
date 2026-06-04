@@ -108,7 +108,8 @@ class PaymentsResource(_Resource):
         event regardless of which path triggered the refund.
         """
         body = RefundRequest(amount=amount, reason=reason).model_dump(  # type: ignore[arg-type]
-            mode="json", exclude_none=True,
+            mode="json",
+            exclude_none=True,
         )
         data = self._transport.request("POST", f"transactions/{transaction_id}/refund", json=body)
         return _parse_response(RefundResponse, data)
@@ -153,10 +154,13 @@ class AsyncPaymentsResource(_AsyncResource):
         reason: str | None = None,
     ) -> RefundResponse:
         body = RefundRequest(amount=amount, reason=reason).model_dump(  # type: ignore[arg-type]
-            mode="json", exclude_none=True,
+            mode="json",
+            exclude_none=True,
         )
         data = await self._transport.request(
-            "POST", f"transactions/{transaction_id}/refund", json=body,
+            "POST",
+            f"transactions/{transaction_id}/refund",
+            json=body,
         )
         return _parse_response(RefundResponse, data)
 
