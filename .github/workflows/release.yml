@@ -1,0 +1,84 @@
+name: Release
+
+# Triggered by pushing a `v*` tag whose name matches the `version` field in
+# pyproject.toml. The build job verifies + packages; the publish job is gated
+# behind the `pypi` GitHub environment so a maintainer approves each upload.
+# Authenticates to PyPI via OIDC (Trusted Publisher) — no long-lived tokens.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Verify tag matches pyproject version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(uv run python -c "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME (=$tag) does not match pyproject version $pkg"
+            exit 1
+          fi
+
+      - name: Verify changelog has an entry for this version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          if ! grep -qE "^## \[${tag}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [${tag}]' entry"
+            exit 1
+          fi
+
+      - name: Lint + typecheck
+        run: just all
+
+      - name: Tests
+        run: just test
+
+      - name: Build sdist + wheel
+        run: just build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/hatchup-payment-service-integration/
+    permissions:
+      id-token: write   # OIDC token for PyPI Trusted Publisher
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No `password:` — uses OIDC config from the Trusted Publisher
+        # registered for this repo at https://pypi.org/manage/account/publishing/
