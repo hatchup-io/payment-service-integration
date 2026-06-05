@@ -1,8 +1,12 @@
 # Hatchup Payment Service Integration
 
+[![PyPI](https://img.shields.io/pypi/v/hatchup-payment-service-integration.svg)](https://pypi.org/project/hatchup-payment-service-integration/)
+[![Python](https://img.shields.io/pypi/pyversions/hatchup-payment-service-integration.svg)](https://pypi.org/project/hatchup-payment-service-integration/)
+[![License](https://img.shields.io/pypi/l/hatchup-payment-service-integration.svg)](LICENSE)
+
 Python SDK for integrating with the [Hatchup Payment Service](https://github.com/hatchup-io/hatchup-payment-system) — an internal Stripe Connect gateway.
 
-> **Status:** 0.4.0 — sync + async client, webhooks, Django integration, and contract tripwire shipped. Stabilizing toward 1.0.
+> **Status:** 1.1.x on PyPI — sync + async client, full gateway-surface mirror (payments, refunds, customers, invoices, subscriptions, payment/setup intents, catalog, webhook endpoints), inbound-webhook HMAC + roundtrip verifiers, Django integration, contract tripwire.
 
 ## What this is
 
