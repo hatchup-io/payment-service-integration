@@ -55,7 +55,7 @@ with PaymentServiceClient(PSIPConfig(api_key=SecretStr("hp_..."))) as client:
 - **M3 — async client** _(0.4.0)_ — shipped: `AsyncPaymentServiceClient`, paired async resources, `AsyncWebhookDispatcher`.
 - **M4 — full gateway-surface mirror** _(1.0.0)_ — shipped: customers, payment/setup intents, catalog, subscriptions, invoices, webhook endpoints + outbound-webhook taxonomy parsers + HMAC signature verifier for `X-Hatchup-Signature`.
 - **1.1.x** — shipped on PyPI: per-request `Idempotency-Key` headers, customer-attached checkout sessions, invoice number passthrough, opt-in Stripe Invoice generation, `payments.refund(transaction_id, ...)`.
-- **Next**: TypeScript port at `@hatchup/payment-service-integration` on npm — see [`docs/NODE_SDK_PLAN.md`](docs/NODE_SDK_PLAN.md).
+- **Next**: TypeScript port as `@hatchup-io/payment-service-integration` in [`hatchup-io/payment-service-integration-node`](https://github.com/hatchup-io/payment-service-integration-node). Its client and REST resources are implemented; webhook parsing is pending and it is not on npm yet. See [`docs/NODE_SDK_PLAN.md`](docs/NODE_SDK_PLAN.md) (which still uses the earlier `@hatchup` scope).
 
 ## Development
 
