@@ -18,13 +18,15 @@ from hatchup_psip import PaymentServiceClient, PSIPConfig, WebhookDispatcher
 client = PaymentServiceClient(PSIPConfig(api_key=...))
 dispatcher = WebhookDispatcher(verifier=client.webhooks.verify_event)
 
+
 @dispatcher.on("payment.completed")
 def mark_order_paid(event):
     Order.objects.filter(reference=event.order_id).update(paid=True)
 
+
 # In your HTTP handler:
 event = client.webhooks.parse(request.body)
-dispatcher.dispatch(event)   # verifies via server roundtrip first
+dispatcher.dispatch(event)  # verifies via server roundtrip first
 ```
 
 For Django, [`docs/django.md`](django.md) shows how `PSIPWebhookView` wraps the same flow and reads from `settings.PSIP`.
@@ -34,8 +36,8 @@ For Django, [`docs/django.md`](django.md) shows how `PSIPWebhookView` wraps the 
 `client.webhooks.parse()` accepts the raw body in any of three forms:
 
 ```python
-event = client.webhooks.parse(request.body)              # bytes
-event = client.webhooks.parse(request.body.decode())     # str
+event = client.webhooks.parse(request.body)  # bytes
+event = client.webhooks.parse(request.body.decode())  # str
 event = client.webhooks.parse(json.loads(request.body))  # dict
 ```
 
@@ -57,12 +59,11 @@ Unknown fields are silently ignored (forward-compat — server can add fields wi
 
 ```python
 @dispatcher.on("payment.completed")
-def first_handler(event):
-    ...
+def first_handler(event): ...
+
 
 @dispatcher.on("payment.completed")
-def second_handler(event):
-    ...
+def second_handler(event): ...
 ```
 
 `dispatcher.dispatch(event)`:

@@ -31,8 +31,8 @@ with PaymentServiceClient(config) as client:
         success_webhook="https://app.example/psip/webhook/",
         failure_webhook="https://app.example/psip/webhook/",
     )
-    print(response.payment_url)        # → redirect the buyer here
-    print(response.session_id)         # Stripe Checkout session id
+    print(response.payment_url)  # → redirect the buyer here
+    print(response.session_id)  # Stripe Checkout session id
 
     # Later, after the buyer pays:
     transaction = client.transactions.get("ord_2026_05_001")
@@ -55,7 +55,8 @@ PSIPConfig.from_env(timeout=30.0)
 
 # 3. Django settings:
 from hatchup_psip.django.settings import psip_config_from_django_settings
-psip_config_from_django_settings()   # reads settings.PSIP — see docs/django.md
+
+psip_config_from_django_settings()  # reads settings.PSIP — see docs/django.md
 ```
 
 There is intentionally **no module-level singleton client**. Multi-tenant consumers (each tenant has its own API key) build one `PaymentServiceClient` per tenant.
