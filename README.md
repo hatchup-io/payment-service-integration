@@ -35,7 +35,7 @@ with PaymentServiceClient(PSIPConfig(api_key=SecretStr("hp_..."))) as client:
         success_webhook="https://app.example/psip/webhook/",
         failure_webhook="https://app.example/psip/webhook/",
     )
-    print(response.payment_url)   # → redirect the buyer here
+    print(response.payment_url)  # → redirect the buyer here
 ```
 
 ## Documentation

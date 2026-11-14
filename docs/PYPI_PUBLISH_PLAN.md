@@ -27,6 +27,7 @@ Reconcile drift before the first publish, otherwise the first PyPI artifact will
 4. **Switch `_version.py` to derive from package metadata** so future bumps only touch `pyproject.toml`:
    ```python
    from importlib.metadata import version as _pkg_version
+
    __version__ = _pkg_version("hatchup-payment-service-integration")
    ```
 5. **Verify sdist contents.** `uv build` then `tar -tzf dist/*.tar.gz` — confirm `README.md`, `LICENSE`, `CHANGELOG.md`, `src/hatchup_psip/py.typed` all included.

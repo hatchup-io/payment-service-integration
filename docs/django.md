@@ -23,15 +23,15 @@ pip install "hatchup-payment-service-integration[django]"
 # myproject/settings.py
 PSIP = {
     "API_KEY": "hp_...",
-    "BASE_URL": "https://payments.hatchup.io/api/v1/",   # optional
-    "TIMEOUT": 10.0,                                     # optional
-    "DEFAULT_SANDBOX": True,                             # optional
-    "USER_AGENT": "myapp/1.0",                           # optional
+    "BASE_URL": "https://payments.hatchup.io/api/v1/",  # optional
+    "TIMEOUT": 10.0,  # optional
+    "DEFAULT_SANDBOX": True,  # optional
+    "USER_AGENT": "myapp/1.0",  # optional
 }
 
 INSTALLED_APPS = [
     # ...
-    "hatchup_psip.django",   # OPTIONAL — adds boot-time validation of settings.PSIP
+    "hatchup_psip.django",  # OPTIONAL — adds boot-time validation of settings.PSIP
 ]
 
 # myproject/urls.py
@@ -47,6 +47,7 @@ Register handlers in your app's `ready()` hook:
 ```python
 # myapp/apps.py
 from django.apps import AppConfig
+
 
 class MyAppConfig(AppConfig):
     name = "myapp"
@@ -74,10 +75,12 @@ from django.urls import path
 from hatchup_psip.django.views import PSIPWebhookView
 from myapp.psip import client_for_company, dispatcher_for_company
 
+
 def _build_view(company_id: str):
     client = client_for_company(company_id)
     dispatcher = dispatcher_for_company(company_id, client)
     return PSIPWebhookView.as_view(client=client, dispatcher=dispatcher)
+
 
 urlpatterns = [
     path("psip/<str:company_id>/webhook/", _build_view, name="psip-webhook"),
@@ -92,6 +95,7 @@ For per-request resolution (e.g. tenant from URL kwargs):
 
 ```python
 from hatchup_psip.django.views import PSIPWebhookView
+
 
 class CompanyWebhookView(PSIPWebhookView):
     def get_client(self):
@@ -142,11 +146,11 @@ Adding `"hatchup_psip.django"` to `INSTALLED_APPS` only buys you fail-fast valid
 
 ```python
 PSIP = {
-    "API_KEY":         str,           # required — must start with "hp_"
-    "BASE_URL":        str,           # optional — default https://payments.hatchup.io/api/v1/
-    "TIMEOUT":         float | int,   # optional — default 10.0 seconds
-    "DEFAULT_SANDBOX": bool,          # optional — default True
-    "USER_AGENT":      str,           # optional — default "hatchup-psip/<ver> (api=v1)"
+    "API_KEY": str,  # required — must start with "hp_"
+    "BASE_URL": str,  # optional — default https://payments.hatchup.io/api/v1/
+    "TIMEOUT": float | int,  # optional — default 10.0 seconds
+    "DEFAULT_SANDBOX": bool,  # optional — default True
+    "USER_AGENT": str,  # optional — default "hatchup-psip/<ver> (api=v1)"
 }
 ```
 
