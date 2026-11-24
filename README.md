@@ -1,10 +1,10 @@
-# Hatchup Payment Service Integration
+# payment-service-integration
 
 [![PyPI](https://img.shields.io/pypi/v/hatchup-payment-service-integration.svg)](https://pypi.org/project/hatchup-payment-service-integration/)
 [![Python](https://img.shields.io/pypi/pyversions/hatchup-payment-service-integration.svg)](https://pypi.org/project/hatchup-payment-service-integration/)
 [![License](https://img.shields.io/pypi/l/hatchup-payment-service-integration.svg)](LICENSE)
 
-Python SDK for integrating with the [Hatchup Payment Service](https://github.com/hatchup-io/hatchup-payment-system) — an internal Stripe Connect gateway.
+The Python SDK for the [Hatchup Payment Service](https://github.com/hatchup-io/hatchup-payment-system), the internal Stripe Connect gateway. It is published on PyPI as `hatchup-payment-service-integration` and imported as `hatchup_psip`. Hatchup backends that take payments use it, for example `pathwise_backend`, `bayatgroup-backend` and `launchpad-backend-project`. The gateway it calls runs on the production swarm in the `payment_service` stack at `https://api.payment.service.hatchup.capital`; the production and `_dev` services of the consumers set `PSIP_BASE_URL` to `https://api.payment.service.hatchup.capital/api/v1/`.
 
 > **Status:** 1.1.x on PyPI — sync + async client, full gateway-surface mirror (payments, refunds, customers, invoices, subscriptions, payment/setup intents, catalog, webhook endpoints), inbound-webhook HMAC + roundtrip verifiers, Django integration, contract tripwire.
 
@@ -22,7 +22,9 @@ pip install "hatchup-payment-service-integration[django]"
 
 Requires Python 3.12+.
 
-## 30-second example
+## Use
+
+### 30-second example
 
 ```python
 from pydantic import SecretStr
@@ -38,7 +40,9 @@ with PaymentServiceClient(PSIPConfig(api_key=SecretStr("hp_..."))) as client:
     print(response.payment_url)  # → redirect the buyer here
 ```
 
-## Documentation
+`PSIPConfig.from_env()` builds the config from `PSIP_API_KEY`, `PSIP_BASE_URL`, `PSIP_TIMEOUT` and `PSIP_DEFAULT_SANDBOX`. The built-in default base URL is `https://payments.hatchup.io/api/v1/`, which is not the deployed gateway, so set `PSIP_BASE_URL` (or `base_url`) to `https://api.payment.service.hatchup.capital/api/v1/`. API keys come from the gateway; never commit one.
+
+### Documentation
 
 - [`docs/quickstart.md`](docs/quickstart.md) — install, construct a client, call every resource, error hierarchy.
 - [`docs/webhooks.md`](docs/webhooks.md) — **read before deploying**. Covers HMAC signature verification (`verify_signature`) for new `WebhookEndpoint` deliveries and the verify-by-default roundtrip dispatcher for legacy per-row webhooks.
@@ -57,35 +61,49 @@ with PaymentServiceClient(PSIPConfig(api_key=SecretStr("hp_..."))) as client:
 - **1.1.x** — shipped on PyPI: per-request `Idempotency-Key` headers, customer-attached checkout sessions, invoice number passthrough, opt-in Stripe Invoice generation, `payments.refund(transaction_id, ...)`.
 - **Next**: TypeScript port as `@hatchup-io/payment-service-integration` in [`hatchup-io/payment-service-integration-node`](https://github.com/hatchup-io/payment-service-integration-node). Its client and REST resources are implemented; webhook parsing is pending and it is not on npm yet. See [`docs/NODE_SDK_PLAN.md`](docs/NODE_SDK_PLAN.md) (which still uses the earlier `@hatchup` scope).
 
-## Development
+## Test
+
+There is no CI workflow for pull requests; run the checks locally before you open one. The release workflow runs `just all` and `just test` before it publishes.
 
 ```bash
 # install dev deps
 uv sync
 
-# format + lint + types
+# format + lint + types (ruff format, ruff check --fix, ruff check, mypy src)
 just all
 
 # run tests (skips `live` integration tests by default)
 just test
 
+# live integration tests against a local payment-system
+just test-live
+
 # coverage report
 just cov
 
-# build wheel + sdist
-just build
+# pre-commit hooks (whitespace, YAML/TOML checks, ruff)
+just pre-commit
 ```
 
-### Cutting a release
+## Release
+
+Build a wheel and sdist locally with `just build`. To publish:
 
 1. Bump `[project].version` in [`pyproject.toml`](pyproject.toml) and add a matching `## [X.Y.Z]` entry to [`CHANGELOG.md`](CHANGELOG.md).
-2. Commit on `main`.
+2. Merge the change to `main` through a pull request.
 3. Tag and push:
    ```bash
    git tag -a vX.Y.Z -m "release: vX.Y.Z"
    git push origin vX.Y.Z
    ```
 4. [`.github/workflows/release.yml`](.github/workflows/release.yml) verifies the tag matches `pyproject` + changelog, runs `just all` + `just test` + `just build`, then publishes to PyPI via OIDC (no tokens). The publish job is gated behind the `pypi` GitHub environment.
+
+## Related repositories
+
+- [hatchup-payment-system](https://github.com/hatchup-io/hatchup-payment-system): the gateway this SDK calls.
+- [payment-service-integration-node](https://github.com/hatchup-io/payment-service-integration-node): the TypeScript port.
+- [pathwise_backend](https://github.com/hatchup-io/pathwise_backend), [bayatgroup-backend](https://github.com/hatchup-io/bayatgroup-backend) and [launchpad-backend-project](https://github.com/hatchup-io/launchpad-backend-project): backends that depend on it.
+- [production](https://github.com/hatchup-io/production): deploys the `payment_service` stack and sets each consumer's `PSIP_BASE_URL`.
 
 ## License
 
